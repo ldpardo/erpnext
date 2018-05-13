@@ -31,6 +31,7 @@ frappe.pages['point-of-sale'].refresh = function(wrapper) {
 	}
 }
 
+$items = '';
 erpnext.pos.PointOfSale = class PointOfSale {
 	constructor(wrapper) {
 		this.wrapper = $(wrapper).find('.layout-main-section');
@@ -60,8 +61,39 @@ erpnext.pos.PointOfSale = class PointOfSale {
 			() => {
 				frappe.dom.unfreeze();
 			},
-			() => this.page.set_title(__('Point of Sale'))
+			() => this.page.set_title(__('Point of Sale')),
+			() => this.set_QR_reader()
 		]);
+	}
+
+	set_QR_reader() {
+		//this.items = new POSItems();
+		console.log($(this.wrapper))
+		var last = 0;
+		var search_term = '';
+
+		$(document).on('keydown', function(e){
+
+			
+			var n = new Date()
+			//if speed is less than 50ms then is a QR reader
+			console.log(last - n)
+			console.log(search_term)
+		    if (n - last < 50){
+		    	//console.log(String.fromCharCode(e.which))
+		    	
+		    	//console.log(search_code)
+		    	if (e.which == 13){
+		    		console.log(search_term)
+		    		$items.filter_items({ search_term })
+		    	}else{
+		    		search_term = search_term + String.fromCharCode(e.which);
+		    	}
+		    }else{
+		    	search_term = ''
+		    }
+		    last = n;
+		})
 	}
 
 	set_online_status() {
@@ -156,6 +188,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 				}
 			}
 		});
+		$items = this.items;
 	}
 
 	update_item_in_cart(item_code, field='qty', value=1) {
