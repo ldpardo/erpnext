@@ -12,6 +12,7 @@ from erpnext.buying.utils import validate_for_items, update_last_purchase_rate
 from erpnext.stock.stock_ledger import get_valuation_rate
 
 from erpnext.controllers.stock_controller import StockController
+from time import time
 
 class BuyingController(StockController):
 	def __setup__(self):
@@ -353,17 +354,29 @@ class BuyingController(StockController):
 				frappe.throw(_("Row #{0}: {1} can not be negative for item {2}".format(item_row['idx'],
 					frappe.get_meta(item_row.doctype).get_label(fieldname), item_row['item_code'])))
 
+	def get_item_details(self, item_code):
+		return frappe.db.sql("""select has_serial_no from tabItem where name=%s""", item_code, as_dict=0, as_list=1)[0]
+
 	def update_stock_ledger(self, allow_negative_stock=False, via_landed_cost_voucher=False):
 		self.update_ordered_and_reserved_qty()
 
 		sl_entries = []
 		stock_items = self.get_stock_items()
-
+		
 		for d in self.get('items'):
+			
 			if d.item_code in stock_items and d.warehouse:
+				has_serial_no = self.get_item_details(d.item_code)[0]
 				pr_qty = flt(d.qty) * flt(d.conversion_factor)
 
 				if pr_qty:
+					if not d.serial_no and has_serial_no:
+						d.serial_no = ''
+						for q in xrange(int(pr_qty)):
+							d.serial_no = d.serial_no + repr(time())
+							if q < pr_qty - 1:
+								d.serial_no = d.serial_no + ", "
+
 					sle = self.get_sl_entries(d, {
 						"actual_qty": flt(pr_qty),
 						"serial_no": cstr(d.serial_no).strip()
